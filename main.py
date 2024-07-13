@@ -270,10 +270,16 @@ def upload_reels_with_new_descriptions(unuploaded_reels):
                 next_story_upload_time=(datetime.now() + timedelta(minutes=UPLOAD_INTERVAL_MINUTES)).timestamp()
             )
 
+        # Show the dashboard after each upload
+        show_dashboard()
+
         next_upload_time = datetime.now() + timedelta(minutes=UPLOAD_INTERVAL_MINUTES)
         print(f"Next upload at: {next_upload_time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Waiting for {UPLOAD_INTERVAL_MINUTES} minutes before next upload.")
         sleep(UPLOAD_INTERVAL_MINUTES * 60)
+
+def show_dashboard():
+    subprocess.run(["python", "dashboard.py"])  # Call dashboard.py
 
 def main():
     global last_scraped_timestamp
