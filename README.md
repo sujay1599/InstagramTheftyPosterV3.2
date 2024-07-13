@@ -1,18 +1,23 @@
-# InstagramTheftyPoster
+Sure, here's the updated `README.md` reflecting all the recent changes and improvements to the script:
+
+---
+
+# Instagram Thefty Poster
 
 This Python script automates the process of scraping and uploading Instagram reels using the `instagrapi` library. It allows you to scrape reels from specified Instagram profiles, download them, and upload them with new descriptions, optional hashtags, and credits. The script also supports the periodic deletion of uploaded reels.
 
 ## Features
 
-- Scrape reels from specified Instagram profiles.
-- Download and save reels along with their captions.
-- Upload reels to your Instagram account with customizable descriptions.
-- Optionally add reels to your Instagram story.
-- Periodically delete uploaded reels based on user-defined intervals.
-- Use hashtags and give credit in the reel descriptions.
-- Interval-based scraping and uploading.
-- Use session-based login to reduce the risk of being flagged as a bot.
-- Fall back to username and password login if session-based login fails.
+- **Scrape Reels**: Scrape reels from specified Instagram profiles.
+- **Download and Save Reels**: Download and save reels along with their captions.
+- **Upload Reels**: Upload reels to your Instagram account with customizable descriptions.
+- **Story Uploads**: Optionally add reels to your Instagram story.
+- **Periodic Deletion**: Periodically delete uploaded reels based on user-defined intervals.
+- **Custom Descriptions**: Use original or custom descriptions for uploaded reels.
+- **Hashtags and Credit**: Optionally add hashtags and give credit to the original profile.
+- **Session Management**: Use session-based login to reduce the risk of being flagged as a bot.
+- **Fallback Login**: Fall back to username and password login if session-based login fails.
+- **Dashboard**: Display a dashboard with scraping, uploading, file counts, and status information.
 
 ## Requirements
 
@@ -29,18 +34,18 @@ This Python script automates the process of scraping and uploading Instagram ree
 
 ## Installation
 
-1. Clone the repository:
+1. **Clone the repository**:
    ```bash
    git clone https://github.com/sujay1599/InstagramTheftyPosterV2.git
    cd InstagramTheftyPosterV2
    ```
 
-2. Install the required packages using `requirements.txt`:
+2. **Install the required packages**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Run `start.py` to create the `config.yaml` file:
+3. **Run `start.py` to create the `config.yaml` file**:
    ```bash
    python start.py
    ```
@@ -48,10 +53,20 @@ This Python script automates the process of scraping and uploading Instagram ree
 
 ## Usage
 
-Run the script:
-```bash
-python main.py
-```
+1. **Run the main script**:
+   ```bash
+   python main.py
+   ```
+
+2. **Run the dashboard**:
+   ```bash
+   python dashboard.py
+   ```
+
+3. **Run the deletion script**:
+   ```bash
+   python delete.py
+   ```
 
 ### Configuration
 
@@ -89,6 +104,13 @@ The script maintains a log file (`upload_log.txt`) to keep track of uploaded ree
 - On subsequent runs, it tries to log in using the session file.
 - If session-based login fails, it falls back to username and password login and updates the session file.
 
+### Dashboard
+
+The dashboard provides a summary of the current status of scraping, uploading, file counts, and other metrics. To display the dashboard, run:
+```bash
+python dashboard.py
+```
+
 ### Deleting Uploaded Reels
 
 - If you want to delete uploaded reels, you can manually run `delete.py`:
@@ -108,3 +130,7 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## Disclaimer
 
 This script is intended for educational and personal use only. Use it responsibly and ensure you comply with Instagram's terms of service and guidelines.
+
+---
+
+Feel free to make any further adjustments or additions as needed.
