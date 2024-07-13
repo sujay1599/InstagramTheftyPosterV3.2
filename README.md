@@ -1,7 +1,3 @@
-Sure, here's the updated `README.md` reflecting all the recent changes and improvements to the script:
-
----
-
 # Instagram Thefty Poster
 
 This Python script automates the process of scraping and uploading Instagram reels using the `instagrapi` library. It allows you to scrape reels from specified Instagram profiles, download them, and upload them with new descriptions, optional hashtags, and credits. The script also supports the periodic deletion of uploaded reels.
@@ -130,7 +126,3 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 ## Disclaimer
 
 This script is intended for educational and personal use only. Use it responsibly and ensure you comply with Instagram's terms of service and guidelines.
-
----
-
-Feel free to make any further adjustments or additions as needed.
