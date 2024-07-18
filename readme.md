@@ -28,7 +28,7 @@ pip install -r requirements.txt
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/InstagramTheftyPosterV3.git
+   git clone https://github.com/sujay1599/InstagramTheftyPosterV3.git
    cd InstagramTheftyPosterV3
    ```
 
