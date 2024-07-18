@@ -170,82 +170,80 @@ The script maintains a log file (`upload_log.txt`) to keep track of uploaded ree
 
 2. **Scraping Function**:
    ```python
-   def scrape_reels(username, num_reels):
-       global last_scraped_timestamp
-       user_id = cl.user_id_from_username(username)
-       all_downloaded_reels = []
-       downloaded_reels = []
-       backoff_time = 60  # Initial backoff time of 1 minute
-       logging.info(f"Scraping reels from profile: {username}")
-       while len(downloaded_reels) < num_reels:
-           try:
-               reels = cl.user_clips(user_id, amount=50)
-           except requests.exceptions.JSONDecodeError as e:
-               logging.error(f"JSONDecodeError: {e} - Retrying in {backoff_time} seconds")
-               sleep(backoff_time)
-               backoff_time *= 2  # Exponential backoff
-               continue
-           except requests.exceptions.RequestException as e:
-               logging.error(f"RequestException: {e} - Retrying in {backoff_time} seconds")
-               sleep(backoff_time)
-               backoff_time *= 2  # Exponential backoff
-               continue
-           except Exception as e:
-               logging.error(f"Error fetching reels: {e}")
-               break
+      def scrape_reels(username, num_reels):
+    global last_scraped_timestamp
+    user_id = cl.user_id_from_username(username)
+    all_downloaded_reels = []
+    downloaded_reels = []
+    backoff_time = 60  # Initial backoff time of 1 minute
+    logging.info(f"Scraping reels from profile: {username}")
+    while len(downloaded_reels) < num_reels:
+        try:
+            reels = cl.user_clips(user_id, amount=50)
+        except requests.exceptions.JSONDecodeError as e:
+            logging.error(f"JSONDecodeError: {e} - Retrying in {backoff_time} seconds")
+            sleep(backoff_time)
+            backoff_time *= 2  # Exponential backoff
+            continue
+        except requests.exceptions.RequestException as e:
+            logging.error(f"RequestException: {e} - Retrying in {backoff_time} seconds")
+            sleep(backoff_time)
+            backoff_time *= 2  # Exponential backoff
+            continue
+        except Exception as e:
+            logging.error(f"Error fetching reels: {e}")
+            break
 
-           if not reels:
-               break
+        if not reels:
+            break
 
-           for reel in reels:
-               reel_timestamp = reel.taken_at.timestamp()
-               reel_filename = f"{username}_{reel.pk}.mp4"
-               expected_media_path = os.path.join('downloads', reel_filename)
+        for reel in reels:
+            reel_timestamp = reel.taken_at.timestamp()
+            reel_filename = f"{username}_{reel.pk}.mp4"
+            expected_media_path = os.path.join('downloads', reel_filename)
 
-               if reel.pk in uploaded_reels or os.path.exists(expected_media_path):
-                   continue
+            if reel.pk in uploaded_reels or os.path.exists(expected_media_path):
+                continue
 
-               if reel_timestamp <= last_scraped_timestamp:
-                   continue
+            if reel_timestamp <= last_scraped_timestamp:
+                continue
 
-               try:
-                   media_path = cl.clip_download(reel.pk, folder='downloads')
-               except Exception as e:
-                   logging.error(f"Failed to download reel {reel.pk}: {e}")
-                   continue
+            try:
+                media_path = cl.clip_download(reel.pk, folder='downloads')
+            except Exception as e:
+                logging.error(f"Failed to download reel {reel.pk}: {e}")
+                continue
 
-               if os.path.exists(media_path):
-                   description_path = os.path.join('downloads', f'{reel.pk}.txt')
-                   with open(description_path, 'w', encoding='utf-8') as f:
-                       f.write(reel.caption_text)
-                   logging.info(f"Scraped and saved reel: {reel.pk}")
-                   liked, commented = randomly_like_and_comment(reel, cl)
-                   if liked:
-                       logging.info(f"Liked reel: {reel.pk}")
-                   if commented:
-                       logging.info(f"Commented on reel: {reel.pk}")
-                   downloaded_reels.append(reel)
-                   all_downloaded_re
+            if os.path.exists(media_path):
+                description_path = os.path.join('downloads', f'{reel.pk}.txt')
+                with open(description_path, 'w', encoding='utf-8') as f:
+                    f.write(reel.caption_text)
+                logging.info(f"Scraped and saved reel: {reel.pk}")
+                liked, commented = randomly_like_and_comment(reel, cl)
+                if liked:
+                    logging.info(f"Liked reel: {reel.pk}")
+                if commented:
+                    logging.info(f"Commented on reel: {reel.pk}")
+                downloaded_reels.append(reel)
+                all_downloaded_reels.append(f"{username}_{reel.pk}")
+                if len(downloaded_reels) >= num_reels:
+                    break
 
-els.append(f"{username}_{reel.pk}")
-                   if len(downloaded_reels) >= num_reels:
-                       break
+            random_sleep(2, 5, action="scraping next reel")  # Random delay between scraping reels
 
-               random_sleep(2, 5, action="scraping next reel")  # Random delay between scraping reels
+    if downloaded_reels:
+        last_scraped_timestamp = max(reel.taken_at.timestamp() for reel in downloaded_reels)
+        with open(last_scraped_file, 'w') as file:
+            file.write(str(int(last_scraped_timestamp)))
 
-       if downloaded_reels:
-           last_scraped_timestamp = max(reel.taken_at.timestamp() for reel in downloaded_reels)
-           with open(last_scraped_file, 'w') as file:
-               file.write(str(int(last_scraped_timestamp)))
+        update_status(
+            last_scrape_time=datetime.now().timestamp(),
+            next_scrape_time=(datetime.now() + timedelta(minutes=SCRAPE_INTERVAL_MINUTES)).timestamp(),
+            reels_scraped=all_downloaded_reels
+        )
 
-           update_status(
-               last_scrape_time=datetime.now().timestamp(),
-               next_scrape_time=(datetime.now() + timedelta(minutes=SCRAPE_INTERVAL_MINUTES)).timestamp(),
-               reels_scraped=all_downloaded_reels
-           )
-
-       logging.info(f"Finished scraping reels from profile: {username}")
-       return downloaded_reels
+    logging.info(f"Finished scraping reels from profile: {username}")
+    return downloaded_reels
    ```
 
 3. **Uploading Function**:
