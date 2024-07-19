@@ -47,14 +47,15 @@ def delete_uploaded_files():
                 console.print(f"[bold green]Deleted file:[/bold green] {file_path}")
 
     if deleted_files:
-        update_status(
-            last_delete_time=datetime.now().timestamp()
-        )
+        update_status(last_delete_time=datetime.now().timestamp())
+        console.print(f"[bold green]Updated status with last delete time: {datetime.now()}[/bold green]")
     else:
         console.print("[bold yellow]No matching files found to delete.[/bold yellow]")
 
 def main():
+    console.print("[bold blue]Starting the deletion process...[/bold blue]")
     delete_uploaded_files()
+    console.print("[bold blue]Deletion process completed.[/bold blue]")
 
 if __name__ == "__main__":
     main()

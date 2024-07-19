@@ -7,6 +7,7 @@ from datetime import datetime
 status_file = 'status.json'
 log_file = 'upload_log.txt'
 random_upload_time_file = 'random-upload-times.json'
+random_waits_file = 'random-waits.json'
 downloads_dir = 'downloads'
 console = Console()
 
@@ -34,6 +35,18 @@ def read_random_upload_times():
         random_times = json.load(f)
     return random_times
 
+def read_random_waits():
+    if not os.path.exists(random_waits_file):
+        console.print("[bold red]Random waits file not found.[/bold red]")
+        return []
+    try:
+        with open(random_waits_file, 'r') as f:
+            random_times = json.load(f)
+    except json.JSONDecodeError as e:
+        console.print(f"[bold red]Error reading random waits file: {e}[/bold red]")
+        return []
+    return random_times
+
 def get_file_counts():
     if not os.path.exists(downloads_dir):
         console.print("[bold red]Downloads directory not found.[/bold red]")
@@ -53,12 +66,6 @@ def format_time(timestamp):
     except Exception:
         return "Invalid timestamp"
 
-def update_status(**kwargs):
-    status = read_status()
-    status.update(kwargs)
-    with open(status_file, 'w') as f:
-        json.dump(status, f, indent=4, default=str)
-
 def main():
     status = read_status()
     if not status:
@@ -66,6 +73,7 @@ def main():
 
     uploads = read_upload_log()
     random_upload_times = read_random_upload_times()
+    random_waits = read_random_waits()
     total_files, uploaded_files, unuploaded_files, folder_size = get_file_counts()
 
     console.print("=" * 80, justify="left")
@@ -111,11 +119,10 @@ def main():
     for upload_time in random_upload_times[-10:]:
         console.print(f"- {upload_time}")
 
-    # Random Waits
-    console.print("[bold]Random Waits (seconds)[/bold]")
-    random_waits = status.get('random_waits', [])
-    for wait in random_waits[-10:]:
-        console.print(f"- Action: {wait['action']} | Wait Time: {wait['wait_time']:.2f} seconds")
+    # Random Wait Times
+    console.print("[bold]Random Wait Times (seconds)[/bold]")
+    for wait_time in random_waits[-10:]:
+        console.print(f"- {wait_time}")
 
     # Story Upload and Deletion Status Table
     table2 = Table(show_header=True, header_style="bold magenta")
@@ -128,6 +135,10 @@ def main():
     )
 
     console.print(table2)
+
+    # Next file to upload
+    next_file = status.get('next_file_to_upload', 'N/A')
+    console.print(f"[bold]Next File to Upload:[/bold] {next_file}")
 
 if __name__ == "__main__":
     main()
