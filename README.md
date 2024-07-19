@@ -1,5 +1,7 @@
 ### Updated README for Instagram Thefty Poster V3.1
 
+## See Changes Here: https://github.com/sujay1599/InstagramTheftyPosterV3.2/wiki/Enhanced-Breakdown-of-Changes-in-Instagram-Thefty-Poster-V3.2
+
 # Instagram Thefty Poster V3.1
 
 Instagram Thefty Poster V3.1 builds upon the features of V3, introducing several enhancements and new functionalities to improve the automation process of scraping, uploading, and managing Instagram reels.
