@@ -14,12 +14,13 @@ import logging
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Delete status.json, last_scraped_timestamp.txt, and random-upload-times.json if they exist
+# Delete status.json and last_scraped_timestamp.txt if they exist
 status_file = 'status.json'
 last_scraped_file = 'last_scraped_timestamp.txt'
 random_upload_time_file = 'random-upload-times.json'
+random_waits_file = 'random-waits.json'
 
-for file in [status_file, last_scraped_file, random_upload_time_file]:
+for file in [status_file, last_scraped_file]:
     if os.path.exists(file):
         os.remove(file)
         logging.info(f'Deleted {file}')
@@ -29,6 +30,12 @@ if not os.path.exists(random_upload_time_file):
     with open(random_upload_time_file, 'w') as f:
         json.dump([], f)
         logging.info(f'Created {random_upload_time_file}')
+
+# Create random waits file if it does not exist
+if not os.path.exists(random_waits_file):
+    with open(random_waits_file, 'w') as f:
+        json.dump([], f)
+        logging.info(f'Created {random_waits_file}')
 
 # Load configuration
 def load_config(config_file='config.yaml'):
@@ -160,26 +167,33 @@ def get_unuploaded_reels():
 
 def random_sleep(min_time=5, max_time=30, action=""):
     sleep_time = random.uniform(min_time, max_time)
-    wake_time = datetime.now() + timedelta(seconds=sleep_time)
-    logging.info(f"Sleeping for {sleep_time:.2f} seconds before {action}. Will resume at {wake_time.strftime('%Y-%m-%d %H:%M:%S')}")
+    logging.info(f"Sleeping for {sleep_time:.2f} seconds before {action}.")
     sleep(sleep_time)
+    log_random_waits(sleep_time)
     return sleep_time
+
+def log_random_waits(sleep_time):
+    random_waits = []
+    if os.path.exists(random_waits_file):
+        with open(random_waits_file, 'r') as f:
+            random_waits = json.load(f)
+    random_waits.append(sleep_time)
+    with open(random_waits_file, 'w') as f:
+        json.dump(random_waits, f)
 
 def randomly_like_and_comment(reel, client):
     liked = False
     commented = False
+    comment_text = ""
     if random.choice([True, False]):
         client.media_like(reel.id)
         liked = True
-        logging.info(f"Liked reel: {reel.pk}")
-        random_sleep(2, 5, action="liking next reel")  # Random delay after liking
     if random.choice([True, False]) and LEAVE_COMMENT:
         comment = random.choice(COMMENTS)
         client.media_comment(reel.id, comment)
         commented = True
-        logging.info(f"Commented on reel: {reel.pk}")
-        random_sleep(2, 5, action="commenting next reel")  # Random delay after commenting
-    return liked, commented
+        comment_text = comment
+    return liked, commented, comment_text
 
 def scrape_reels(username, num_reels):
     global last_scraped_timestamp
@@ -187,7 +201,6 @@ def scrape_reels(username, num_reels):
     all_downloaded_reels = []
     downloaded_reels = []
     backoff_time = 60  # Initial backoff time of 1 minute
-    logging.info(f"Scraping reels from profile: {username}")
     while len(downloaded_reels) < num_reels:
         try:
             reels = cl.user_clips(user_id, amount=50)
@@ -230,17 +243,16 @@ def scrape_reels(username, num_reels):
                 with open(description_path, 'w', encoding='utf-8') as f:
                     f.write(reel.caption_text)
                 logging.info(f"Scraped and saved reel: {reel.pk}")
-                liked, commented = randomly_like_and_comment(reel, cl)
+                liked, commented, comment_text = randomly_like_and_comment(reel, cl)
                 if liked:
                     logging.info(f"Liked reel: {reel.pk}")
                 if commented:
-                    logging.info(f"Commented on reel: {reel.pk}")
+                    logging.info(f"Commented on reel: {reel.pk} with comment: {comment_text}")
+                random_sleep(10, 60, action="next reel scrape")
                 downloaded_reels.append(reel)
                 all_downloaded_reels.append(f"{username}_{reel.pk}")
                 if len(downloaded_reels) >= num_reels:
                     break
-
-            random_sleep(2, 5, action="scraping next reel")  # Random delay between scraping reels
 
     if downloaded_reels:
         last_scraped_timestamp = max(reel.taken_at.timestamp() for reel in downloaded_reels)
@@ -253,7 +265,6 @@ def scrape_reels(username, num_reels):
             reels_scraped=all_downloaded_reels
         )
 
-    logging.info(f"Finished scraping reels from profile: {username}")
     return downloaded_reels
 
 def build_description(original_description, profile_username):
@@ -275,12 +286,6 @@ def log_random_upload_times(sleep_time):
     random_times.append(sleep_time)
     with open(random_upload_time_file, 'w') as f:
         json.dump(random_times, f)
-
-def log_random_waits(action, wait_time):
-    status = read_status()
-    random_waits = status.get('random_waits', [])
-    random_waits.append({'action': action, 'wait_time': wait_time})
-    update_status(random_waits=random_waits)
 
 def upload_reels_with_new_descriptions(unuploaded_reels):
     if not unuploaded_reels:
@@ -304,7 +309,6 @@ def upload_reels_with_new_descriptions(unuploaded_reels):
         
         # Upload to Instagram feed
         try:
-            logging.info(f"Uploading reel: {reel_id} with description: {new_description}")
             cl.clip_upload(media_path, new_description)
             logging.info(f"Uploaded reel: {reel_id} with description: {new_description}")
         except Exception as e:
@@ -313,9 +317,6 @@ def upload_reels_with_new_descriptions(unuploaded_reels):
         
         # Upload to Instagram story
         if ADD_TO_STORY:
-            wait_time = random_sleep(30, 120, action="uploading to story")  # Random delay before adding to story
-            log_random_waits('story upload', wait_time)
-            logging.info(f"Uploading reel: {reel_id} to story with description: {new_description}")
             try:
                 cl.video_upload_to_story(media_path, new_description)
                 logging.info(f"Added reel: {reel_id} to story")
@@ -349,26 +350,27 @@ def upload_reels_with_new_descriptions(unuploaded_reels):
                 next_story_upload_time=(datetime.now() + timedelta(minutes=UPLOAD_INTERVAL_MINUTES)).timestamp()
             )
 
-        # Show the dashboard after each upload
-        show_dashboard()
+        logging.info(f"Next upload will include reel: {reel_file}")
 
         sleep_time = random_sleep(10, 60, action="next upload")  # Random sleep before next upload
         log_random_upload_times(sleep_time)
-        log_random_waits('upload', sleep_time)
 
         next_upload_time = datetime.now() + timedelta(minutes=UPLOAD_INTERVAL_MINUTES)
         logging.info(f"Next upload at: {next_upload_time.strftime('%Y-%m-%d %H:%M:%S')}")
         logging.info(f"Waiting for {UPLOAD_INTERVAL_MINUTES} minutes before next upload.")
         sleep(UPLOAD_INTERVAL_MINUTES * 60)
 
+        # Show the dashboard after each upload
+        show_dashboard()
+
 def show_dashboard():
     subprocess.run(["python", "dashboard.py"])  # Call dashboard.py
 
 def main():
     global last_scraped_timestamp
-    
+
     status = read_status()
-    
+
     # Initialize times if they are None
     last_scrape_time = status.get("last_scrape_time") or (time() - (SCRAPE_INTERVAL_MINUTES * 60))
     last_upload_time = status.get("last_upload_time") or (time() - (UPLOAD_INTERVAL_MINUTES * 60))
@@ -391,9 +393,14 @@ def main():
                     logging.info(f"Scraping profile: {profile}")
                     reels = scrape_reels(profile, num_reels=NUM_REELS)
                     for reel in reels:
-                        random_sleep(10, 60, action="scraping next reel")  # Random sleep before processing each reel
-                    last_scrape_time = current_time
-                    update_status(last_scrape_time=last_scrape_time, next_scrape_time=current_time + SCRAPE_INTERVAL_MINUTES * 60)
+                        random_sleep(10, 60, action="next like/comment")  # Random sleep before processing each reel
+                        randomly_like_and_comment(reel, cl)
+                last_scrape_time = current_time
+                update_status(last_scrape_time=last_scrape_time, next_scrape_time=current_time + SCRAPE_INTERVAL_MINUTES * 60)
+
+                logging.info("Finished scraping reels from profiles.")
+                wait_time = random_sleep(30, 120, action="uploading phase")  # Wait before moving to uploading
+                logging.info(f"Waited for {wait_time:.2f} seconds before moving to the uploading phase.")
 
         if (current_time - last_upload_time) >= UPLOAD_INTERVAL_MINUTES * 60:
             if UPLOAD_ENABLED:
